@@ -94,6 +94,7 @@ class IssBinarySensor(BinarySensorDevice):
             else:
                 attrs['long'] = self.iss_data.position.get('longitude')
                 attrs['lat'] = self.iss_data.position.get('latitude')
+                attrs['path'] = self.iss_data.gpath_str
             return attrs
 
     def update(self):
@@ -112,6 +113,8 @@ class IssData(object):
         self.position = None
         self.latitude = latitude
         self.longitude = longitude
+        self.gpath = []
+        self.gpath_str = ''
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     def update(self):
@@ -124,6 +127,19 @@ class IssData(object):
             self.next_rise = iss.next_rise(self.latitude, self.longitude)
             self.number_of_people_in_space = iss.number_of_people_in_space()
             self.position = iss.current_location()
+
+            lng = self.position.get('longitude')
+            lat = self.position.get('latitude')
+
+            self.gpath.append([lat, lng])
+            if len(self.gpath) > 20:
+                self.gpath.pop(0)
+
+            l = []
+            for c in self.gpath:
+                l.append(','.join(c))
+            self.gpath_str = '|'.join(l)
+
         except requests.exceptions.HTTPError as error:
             _LOGGER.error(error)
             return False
